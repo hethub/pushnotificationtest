@@ -5,22 +5,6 @@ import 'dart:convert';
 class LocalNotification {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
-  // Future<void> storeNotification(List<String> data) async {
-  //   final SharedPreferences prefs = await _prefs;
-
-  //   List<String> allData = (prefs.getStringList('notifications') ?? []);
-  //   if (allData.isEmpty) {
-  //     prefs.setStringList('notifications', [...data, '']);
-  //   }
-  // }
-
-  // Future<List<String>> getAllvalue() async {
-  //   final SharedPreferences prefs = await _prefs;
-  //   List<String> value = (prefs.getStringList('notifications') ?? []);
-  //   // print(value);
-  //   return value;
-  // }
-
   Future setMessages(Map messages) async {
     print(messages);
     final SharedPreferences prefs = await _prefs;
@@ -41,5 +25,27 @@ class LocalNotification {
       }
     }
     return messages;
+  }
+
+  Future<void> setTotalMessage(int msg) async {
+    final SharedPreferences prefs = await _prefs;
+    prefs.setInt('totalMessage', msg);
+  }
+
+  Future<int> getNewMessage() async {
+    int newMsg = 0;
+    final SharedPreferences prefs = await _prefs;
+    int totalMsg = prefs.getInt('totalMessage') ?? 0;
+
+    await getMessages().then((allMsg) {
+      int len = allMsg.length;
+      // print(len);
+      if (len > totalMsg) {
+        newMsg = len - totalMsg;
+        setTotalMessage(len);
+      }
+    });
+    print('========================================= $newMsg');
+    return newMsg;
   }
 }

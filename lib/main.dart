@@ -132,7 +132,8 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           badge++;
         });
-
+        storeLocal.setMessages(
+            {'title': notification.title, 'body': notification.body});
         data.add({'title': notification.title, 'body': notification.body});
       }
     });
@@ -140,16 +141,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
+    storeLocal.getNewMessage();
     fcm = storeLocal.getMessages();
     fcm.then(
       (value) {
         print(value.length);
-        print(value);
       },
     );
-    setupInteractedMessage();
-
-    // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    // setupInteractedMessage();
     getNotification();
 
     super.initState();

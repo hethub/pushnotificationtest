@@ -1,22 +1,20 @@
-//
-// Time : 15:13
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:my_sns/local_notify.dart';
 
 import 'list_of_notification.dart';
 
-List<Map<String, dynamic>> allData = [];
-int allbadge = 0;
-
+LocalNotification storeLocal = LocalNotification();
 // firebase background message handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  print(message.notification!.body);
+  // print(message.notification!.body);
   RemoteNotification? notification = message.notification;
-  allbadge++;
-  allData.add({'title': notification!.title, 'body': notification.body});
+
+  storeLocal
+      .setMessages({'title': notification!.title, 'body': notification.body});
   print('A Background message just showed up :  ${message.messageId}');
 }
 
@@ -54,14 +52,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   List<Map<String, dynamic>> data = [];
   int badge = 0;
-
-  void getData() {
-    print('================== $allData');
-    setState(() {
-      badge = allbadge;
-      data = allData;
-    });
-  }
+  late Future<List<Map<String, dynamic>>> fcm;
 
   Future<void> setupInteractedMessage() async {
     // Get any messages which caused the application to open from
@@ -149,21 +140,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      RemoteNotification? notification = message.notification;
-      AndroidNotification? android = message.notification?.android;
-      print('==========');
-
-      if (notification != null && android != null) {
-        print(notification.body);
-
-        setState(() {
-          badge++;
-        });
-
-        data.add({'title': notification.title, 'body': notification.body});
-      }
-    });
+    fcm = storeLocal.getMessages();
+    fcm.then(
+      (value) {
+        print(value.length);
+        print(value);
+      },
+    );
     setupInteractedMessage();
 
     // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

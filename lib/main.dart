@@ -3,6 +3,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:my_sns/local_notify.dart';
+import './list_of_notification.dart';
+import 'package:provider/provider.dart';
 
 import 'list_of_notification.dart';
 
@@ -32,13 +34,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Push Notification',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const MyHomePage(),
-    );
+    return MultiProvider(
+        providers: [
+          ChangeNotifierProvider<LocalNotifyprov>(
+              create: (_) => LocalNotifyprov())
+        ],
+        child: MaterialApp(
+          title: 'Push Notification',
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+          ),
+          home: const MyHomePage(),
+        ));
   }
 }
 

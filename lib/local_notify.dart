@@ -32,20 +32,49 @@ class LocalNotification {
     prefs.setInt('totalMessage', msg);
   }
 
-  Future<int> getNewMessage() async {
+  Stream<List> getAllMessage() async* {
     int newMsg = 0;
     final SharedPreferences prefs = await _prefs;
     int totalMsg = prefs.getInt('totalMessage') ?? 0;
+    List<String> messagesString = prefs.getStringList('notification') ?? [];
+    List<Map<String, dynamic>> messages = [];
 
-    await getMessages().then((allMsg) {
-      int len = allMsg.length;
-      // print(len);
-      if (len > totalMsg) {
-        newMsg = len - totalMsg;
-        setTotalMessage(len);
+    if (messagesString.isNotEmpty) {
+      for (var element in messagesString) {
+        messages.add(json.decode(element));
       }
-    });
-    print('========================================= $newMsg');
-    return newMsg;
+    }
+    int len = messages.length;
+
+    if (len > totalMsg) {
+      newMsg = len - totalMsg;
+      setTotalMessage(len);
+    }
+    // List returnVal = [messages, newMsg];
+    // print('========================================= $messages');
+    yield [messages, newMsg];
   }
+
+  // Future<List> getAllMessage() async {
+  //   int newMsg = 0;
+  //   final SharedPreferences prefs = await _prefs;
+  //   int totalMsg = prefs.getInt('totalMessage') ?? 0;
+  //   List<String> messagesString = prefs.getStringList('notification') ?? [];
+  //   List<Map<String, dynamic>> messages = [];
+
+  //   if (messagesString.isNotEmpty) {
+  //     for (var element in messagesString) {
+  //       messages.add(json.decode(element));
+  //     }
+  //   }
+  //   int len = messages.length;
+
+  //   if (len > totalMsg) {
+  //     newMsg = len - totalMsg;
+  //     setTotalMessage(len);
+  //   }
+  //   // List returnVal = [messages, newMsg];
+  //   // print('========================================= $messages');
+  //   return [messages, newMsg];
+  // }
 }

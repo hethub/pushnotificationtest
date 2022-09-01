@@ -141,13 +141,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    storeLocal.getNewMessage();
-    fcm = storeLocal.getMessages();
-    fcm.then(
-      (value) {
-        print(value.length);
-      },
-    );
+    // storeLocal.getAllMessage();
+
+    // fcm = storeLocal.getMessages();
+    // fcm.then(
+    //   (value) {
+    //     print(value.length);
+    //   },
+    // );
     // setupInteractedMessage();
     getNotification();
 
@@ -161,44 +162,88 @@ class _MyHomePageState extends State<MyHomePage> {
         title: const Text('Notification'),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.miniStartFloat,
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.greenAccent,
-        onPressed: () {
-          Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => ListOfNotification(
-                    data: data,
-                  )));
-          setState(() {
-            badge = 0;
-          });
-        },
-        label: Stack(
-          alignment: Alignment.center,
-          children: [
-            const Icon(
-              Icons.notifications,
-              size: 40,
-            ),
-            badge == 0
-                ? Container()
-                : Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: const BoxDecoration(
-                          shape: BoxShape.circle, color: Colors.red),
-                      alignment: Alignment.center,
-                      child: Text('$badge'),
-                    ),
-                  )
-          ],
-        ),
-      ),
+      floatingActionButton: const UseStream(),
       body: const Center(
         child: Text('hello'),
       ),
     );
+  }
+}
+
+class UseStream extends StatefulWidget {
+  const UseStream({Key? key}) : super(key: key);
+
+  @override
+  State<UseStream> createState() => _UseStreamState();
+}
+
+class _UseStreamState extends State<UseStream> {
+  int badge = 0;
+  // Stream<List> getval() async* {
+  //   yield await storeLocal.getAllMessage();
+  // }
+
+  @override
+  void initState() {
+    // getval().listen((event) {
+    //   print(event[1]);
+    // });
+    // storeLocal.getAllMessage();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List>(
+        // stream: getval(),
+        stream: storeLocal.getAllMessage(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const CircularProgressIndicator();
+          } else if (snapshot.hasData) {
+            print(snapshot.data![1]);
+            badge = snapshot.data![1];
+            return FloatingActionButton.extended(
+              backgroundColor: Colors.greenAccent,
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const ListOfNotification(
+                          data: [],
+                        )));
+                setState(() {
+                  badge = 0;
+                });
+              },
+              label: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Icon(
+                    Icons.notifications,
+                    size: 40,
+                  ),
+                  badge == 0
+                      ? Container()
+                      : Positioned(
+                          top: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: const BoxDecoration(
+                                shape: BoxShape.circle, color: Colors.red),
+                            alignment: Alignment.center,
+                            child: Text('$badge'),
+                          ),
+                        )
+                ],
+              ),
+            );
+          }
+          return const Icon(
+            Icons.error_outline,
+            color: Colors.red,
+            size: 60,
+          );
+        });
   }
 }

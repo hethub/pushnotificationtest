@@ -8,15 +8,14 @@ import 'package:provider/provider.dart';
 
 import 'list_of_notification.dart';
 
-LocalNotification storeLocal = LocalNotification();
+LocalNotifyprov call = LocalNotifyprov();
 // firebase background message handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  // print(message.notification!.body);
   RemoteNotification? notification = message.notification;
 
-  storeLocal
-      .setMessages({'title': notification!.title, 'body': notification.body});
+  call.setMessagesBack(
+      {'title': notification!.title, 'body': notification.body});
   print('A Background message just showed up :  ${message.messageId}');
 }
 
@@ -24,6 +23,7 @@ void main() async {
   // firebase App initialize
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   runApp(const MyApp());
@@ -57,9 +57,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<Map<String, dynamic>> data = [];
-  int badge = 0;
-  late Future<List<Map<String, dynamic>>> fcm;
+  // List<Map<String, dynamic>> data = [];
+
+  late Future<int> badge;
 
   Future<void> setupInteractedMessage() async {
     // Get any messages which caused the application to open from
@@ -80,14 +80,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _handleMessage(RemoteMessage message) {
     RemoteNotification? notification = message.notification;
-
+    print('=== open call ==========');
     AndroidNotification? android = message.notification?.android;
     if (notification != null && android != null) {
-      data.add({'title': notification.title, 'body': notification.body});
-      Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => ListOfNotification(
-                data: data,
-              )));
+      // data.add({'title': notification.title, 'body': notification.body});
+      // Navigator.of(context)
+      //     .push(MaterialPageRoute(builder: (_) => const ListOfNotification()));
     }
   }
 
@@ -136,121 +134,85 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         );
 
-        setState(() {
-          badge++;
-        });
-        storeLocal.setMessages(
+        Provider.of<LocalNotifyprov>(context, listen: false).setMessagesForGnd(
             {'title': notification.title, 'body': notification.body});
-        data.add({'title': notification.title, 'body': notification.body});
+        // data.add({'title': notification.title, 'body': notification.body});
       }
     });
   }
 
+  // // firebase background message handler
+  // Future<void> _firebaseMessagingBackgroundHandler(
+  //     RemoteMessage message) async {
+  //   await Firebase.initializeApp();
+  //   RemoteNotification? notification = message.notification;
+
+  //   setMessages({'title': notification!.title, 'body': notification.body});
+  //   print('A Background message just showed up :  ${message.messageId}');
+  // }
+
   @override
   void initState() {
-    // storeLocal.getAllMessage();
-
-    // fcm = storeLocal.getMessages();
-    // fcm.then(
-    //   (value) {
-    //     print(value.length);
-    //   },
-    // );
-    // setupInteractedMessage();
     getNotification();
+    setupInteractedMessage();
 
+    badge = Provider.of<LocalNotifyprov>(context, listen: false).badge();
     super.initState();
+  }
+
+  void call() {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
 
   @override
   Widget build(BuildContext context) {
+    // var a =
+    //     Provider.of<LocalNotifyprov>(context, listen: false).allNotifications;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notification'),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.miniStartFloat,
-      floatingActionButton: const UseStream(),
+      floatingActionButton:
+          Consumer<LocalNotifyprov>(builder: (context, dta, child) {
+        int badge = dta.newNotification;
+        // int badge = dta.noti();
+
+        return FloatingActionButton.extended(
+          backgroundColor: Colors.greenAccent,
+          onPressed: () {
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ListOfNotification()));
+            Provider.of<LocalNotifyprov>(context, listen: false).clearBadge();
+          },
+          label: Stack(
+            alignment: Alignment.center,
+            children: [
+              const Icon(
+                Icons.notifications,
+                size: 40,
+              ),
+              badge == 0
+                  ? Container()
+                  : Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: const BoxDecoration(
+                            shape: BoxShape.circle, color: Colors.red),
+                        alignment: Alignment.center,
+                        child: Text('$badge'),
+                      ),
+                    )
+            ],
+          ),
+        );
+      }),
       body: const Center(
         child: Text('hello'),
       ),
     );
-  }
-}
-
-class UseStream extends StatefulWidget {
-  const UseStream({Key? key}) : super(key: key);
-
-  @override
-  State<UseStream> createState() => _UseStreamState();
-}
-
-class _UseStreamState extends State<UseStream> {
-  int badge = 0;
-  // Stream<List> getval() async* {
-  //   yield await storeLocal.getAllMessage();
-  // }
-
-  @override
-  void initState() {
-    // getval().listen((event) {
-    //   print(event[1]);
-    // });
-    // storeLocal.getAllMessage();
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<List>(
-        // stream: getval(),
-        stream: storeLocal.getAllMessage(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const CircularProgressIndicator();
-          } else if (snapshot.hasData) {
-            print(snapshot.data![1]);
-            badge = snapshot.data![1];
-            return FloatingActionButton.extended(
-              backgroundColor: Colors.greenAccent,
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const ListOfNotification(
-                          data: [],
-                        )));
-                setState(() {
-                  badge = 0;
-                });
-              },
-              label: Stack(
-                alignment: Alignment.center,
-                children: [
-                  const Icon(
-                    Icons.notifications,
-                    size: 40,
-                  ),
-                  badge == 0
-                      ? Container()
-                      : Positioned(
-                          top: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: const BoxDecoration(
-                                shape: BoxShape.circle, color: Colors.red),
-                            alignment: Alignment.center,
-                            child: Text('$badge'),
-                          ),
-                        )
-                ],
-              ),
-            );
-          }
-          return const Icon(
-            Icons.error_outline,
-            color: Colors.red,
-            size: 60,
-          );
-        });
   }
 }

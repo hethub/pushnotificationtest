@@ -3,30 +3,49 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dart:convert';
 
-final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-Future setMessages(Map messages) async {
-  print(messages);
-  final SharedPreferences prefs = await _prefs;
-  List<String> messagesString = [];
-  List<String> allData = (prefs.getStringList('notification') ?? []);
-  messagesString = [...allData, json.encode(messages)];
-  prefs.setStringList('notification', messagesString);
-}
+// final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+// Future setMessages(Map messages) async {
+//   // print(messages);
+//   final SharedPreferences prefs = await _prefs;
+//   List<String> messagesString = [];
+//   List<String> allData = (prefs.getStringList('notification') ?? []);
+//   messagesString = [...allData, json.encode(messages)];
+
+//   prefs.setStringList('notification', messagesString);
+// }
 
 class LocalNotifyprov extends ChangeNotifier {
-  List<Map<String, dynamic>> _allNotifications = [];
-  List<Map<String, dynamic>> get allNotifications => [..._allNotifications];
-  int newNotification = 0;
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
-  Future setMessages(Map<String, dynamic> messages) async {
-    print(messages);
+  List<Map<String, dynamic>> _allNotifications = [];
+  int _newNotification = 0;
+  List<Map<String, dynamic>> get allNotifications => [..._allNotifications];
+  int get newNotification => _newNotification;
+
+  Future setMessagesBack(Map messages) async {
+    // print(messages);
     final SharedPreferences prefs = await _prefs;
     List<String> messagesString = [];
     List<String> allData = (prefs.getStringList('notification') ?? []);
     messagesString = [...allData, json.encode(messages)];
     prefs.setStringList('notification', messagesString);
+    notifyListeners();
+  }
+
+  // set message when app is in forground
+  Future setMessagesForGnd(Map<String, dynamic> messages) async {
+    print('============provider ====$messages');
+    final SharedPreferences prefs = await _prefs;
+    List<String> messagesString = [];
+    List<String> allData = (prefs.getStringList('notification') ?? []);
+    messagesString = [...allData, json.encode(messages)];
+    prefs.setStringList('notification', messagesString);
+    int newmessage = prefs.getInt('totalMessage') ?? 0;
+    prefs.setInt('totalMessage', newmessage++);
+    // prefs.setInt('totalMessage', _allNotifications.length + 1);
+
     _allNotifications.add(messages);
-    newNotification++;
+    _newNotification++;
     notifyListeners();
   }
 
@@ -35,88 +54,44 @@ class LocalNotifyprov extends ChangeNotifier {
     prefs.setInt('totalMessage', msg);
   }
 
-  Future<List<Map<String, dynamic>>> getAllMessage() async {
-    int newMsg = 0;
-    final SharedPreferences prefs = await _prefs;
-    int totalOldMsg = prefs.getInt('totalMessage') ?? 0;
-    List<String> messagesString = prefs.getStringList('notification') ?? [];
-    List<Map<String, dynamic>> messages = [];
-
-    if (messagesString.isNotEmpty) {
-      for (var element in messagesString) {
-        messages.add(json.decode(element));
-      }
-      _allNotifications = messages;
-      notifyListeners();
-    }
-    // Current message length
-    int len = messages.length;
-
-    if (len > totalOldMsg) {
-      newMsg = len - totalOldMsg;
-      // set total message for next time
-      setTotalMessage(len);
-      newNotification = newMsg;
-      notifyListeners();
-    }
-    // List returnVal = [messages, newMsg];
-    // print('========================================= $messages');
-
-    // return [messages, newMsg];
-    return messages;
-  }
-}
-
-class LocalNotification {
-  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-
-  Future setMessages(Map messages) async {
-    print(messages);
-    final SharedPreferences prefs = await _prefs;
-    List<String> messagesString = [];
-    List<String> allData = (prefs.getStringList('notification') ?? []);
-    messagesString = [...allData, json.encode(messages)];
-    prefs.setStringList('notification', messagesString);
-  }
-
-  Future<List<Map<String, dynamic>>> getMessages() async {
+  Future<List<Map<String, dynamic>>> getMessage() async {
     final SharedPreferences prefs = await _prefs;
     List<String> messagesString = prefs.getStringList('notification') ?? [];
-    // print(messagesString.runtimeType);
     List<Map<String, dynamic>> messages = [];
     if (messagesString.isNotEmpty) {
       for (var element in messagesString) {
         messages.add(json.decode(element));
       }
     }
+
     return messages;
   }
 
-  Future<void> setTotalMessage(int msg) async {
+  Future<int> badge() async {
+    int badgeCount = 0;
     final SharedPreferences prefs = await _prefs;
-    prefs.setInt('totalMessage', msg);
+    int oldmessage = prefs.getInt('totalMessage') ?? 0;
+    // print(oldmessage);
+
+    await getMessage().then((data) {
+      int len = data.length;
+      if (oldmessage < len) {
+        badgeCount = len - oldmessage;
+        notifyListeners();
+      }
+      _allNotifications = data;
+      _newNotification = badgeCount;
+      //=============
+      // prefs.setInt('totalMessage', len);
+      print(len);
+      notifyListeners();
+    });
+
+    return badgeCount;
   }
 
-  Stream<List> getAllMessage() async* {
-    int newMsg = 0;
-    final SharedPreferences prefs = await _prefs;
-    int totalMsg = prefs.getInt('totalMessage') ?? 0;
-    List<String> messagesString = prefs.getStringList('notification') ?? [];
-    List<Map<String, dynamic>> messages = [];
-
-    if (messagesString.isNotEmpty) {
-      for (var element in messagesString) {
-        messages.add(json.decode(element));
-      }
-    }
-    int len = messages.length;
-
-    if (len > totalMsg) {
-      newMsg = len - totalMsg;
-      setTotalMessage(len);
-    }
-    // List returnVal = [messages, newMsg];
-    // print('========================================= $messages');
-    yield [messages, newMsg];
+  void clearBadge() {
+    _newNotification = 0;
+    notifyListeners();
   }
 }

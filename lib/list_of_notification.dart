@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:my_sns/local_notify.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ListOfNotification extends StatefulWidget {
   const ListOfNotification({Key? key}) : super(key: key);
@@ -11,9 +14,11 @@ class ListOfNotification extends StatefulWidget {
 
 class _ListOfNotificationState extends State<ListOfNotification> {
   late Future<List<Map<String, dynamic>>> fcm;
+
   @override
   void initState() {
     fcm = Provider.of<LocalNotifyprov>(context, listen: false).getMessage();
+
     super.initState();
   }
 

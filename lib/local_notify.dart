@@ -10,17 +10,15 @@ import 'dart:convert';
 //   List<String> messagesString = [];
 //   List<String> allData = (prefs.getStringList('notification') ?? []);
 //   messagesString = [...allData, json.encode(messages)];
-
 //   prefs.setStringList('notification', messagesString);
 // }
 
 class LocalNotifyprov extends ChangeNotifier {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-
   List<Map<String, dynamic>> _allNotifications = [];
-  int _newNotification = 0;
+  int _newNotifications = 0;
   List<Map<String, dynamic>> get allNotifications => [..._allNotifications];
-  int get newNotification => _newNotification;
+  int get newNotification => _newNotifications;
 
   Future setMessagesBack(Map messages) async {
     // print(messages);
@@ -29,6 +27,16 @@ class LocalNotifyprov extends ChangeNotifier {
     List<String> allData = (prefs.getStringList('notification') ?? []);
     messagesString = [...allData, json.encode(messages)];
     prefs.setStringList('notification', messagesString);
+    _newNotifications++;
+
+    await getMessage().then(
+      (value) {
+        _allNotifications = value;
+        notifyListeners();
+      },
+    );
+    print(_newNotifications);
+    print(_allNotifications.length);
     notifyListeners();
   }
 
@@ -42,10 +50,9 @@ class LocalNotifyprov extends ChangeNotifier {
     prefs.setStringList('notification', messagesString);
     int newmessage = prefs.getInt('totalMessage') ?? 0;
     prefs.setInt('totalMessage', newmessage++);
-    // prefs.setInt('totalMessage', _allNotifications.length + 1);
 
     _allNotifications.add(messages);
-    _newNotification++;
+    _newNotifications++;
     notifyListeners();
   }
 
@@ -63,7 +70,6 @@ class LocalNotifyprov extends ChangeNotifier {
         messages.add(json.decode(element));
       }
     }
-
     return messages;
   }
 
@@ -71,27 +77,26 @@ class LocalNotifyprov extends ChangeNotifier {
     int badgeCount = 0;
     final SharedPreferences prefs = await _prefs;
     int oldmessage = prefs.getInt('totalMessage') ?? 0;
-    // print(oldmessage);
-
     await getMessage().then((data) {
       int len = data.length;
+
       if (oldmessage < len) {
         badgeCount = len - oldmessage;
+        setTotalMessage(len);
         notifyListeners();
       }
       _allNotifications = data;
-      _newNotification = badgeCount;
-      //=============
-      // prefs.setInt('totalMessage', len);
-      print(len);
+      _newNotifications = badgeCount;
+
       notifyListeners();
     });
 
     return badgeCount;
   }
 
-  void clearBadge() {
-    _newNotification = 0;
+  void clearBadge() async {
+    setTotalMessage(allNotifications.length);
+    _newNotifications = 0;
     notifyListeners();
   }
 }

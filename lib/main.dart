@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -61,34 +63,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   late Future<int> badge;
 
-  Future<void> setupInteractedMessage() async {
-    // Get any messages which caused the application to open from
-    // a terminated state.
-    RemoteMessage? initialMessage =
-        await FirebaseMessaging.instance.getInitialMessage();
-
-    // If the message also contains a data property with a "type" of "chat",
-    // navigate to a chat screen
-    if (initialMessage != null) {
-      _handleMessage(initialMessage);
-    }
-
-    // Also handle any interaction when the app is in the background via a
-    // Stream listener
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
-  }
-
-  void _handleMessage(RemoteMessage message) {
-    RemoteNotification? notification = message.notification;
-    print('=== open call ==========');
-    AndroidNotification? android = message.notification?.android;
-    if (notification != null && android != null) {
-      // data.add({'title': notification.title, 'body': notification.body});
-      // Navigator.of(context)
-      //     .push(MaterialPageRoute(builder: (_) => const ListOfNotification()));
-    }
-  }
-
   Future<void> getNotification() async {
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'high_importance_channel', // id
@@ -141,27 +115,12 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  // // firebase background message handler
-  // Future<void> _firebaseMessagingBackgroundHandler(
-  //     RemoteMessage message) async {
-  //   await Firebase.initializeApp();
-  //   RemoteNotification? notification = message.notification;
-
-  //   setMessages({'title': notification!.title, 'body': notification.body});
-  //   print('A Background message just showed up :  ${message.messageId}');
-  // }
-
   @override
   void initState() {
     getNotification();
-    setupInteractedMessage();
 
     badge = Provider.of<LocalNotifyprov>(context, listen: false).badge();
     super.initState();
-  }
-
-  void call() {
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
 
   @override

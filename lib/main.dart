@@ -1,22 +1,23 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:my_sns/local_notify.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import './list_of_notification.dart';
 import 'package:provider/provider.dart';
 
 import 'list_of_notification.dart';
 
-LocalNotifyprov call = LocalNotifyprov();
 // firebase background message handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   RemoteNotification? notification = message.notification;
 
-  call.setMessagesBack(
+  setMessagesInBackground(
       {'title': notification!.title, 'body': notification.body});
   print('A Background message just showed up :  ${message.messageId}');
 }
@@ -58,7 +59,7 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   // List<Map<String, dynamic>> data = [];
 
   late Future<int> badge;
@@ -108,15 +109,16 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         );
 
-        Provider.of<LocalNotifyprov>(context, listen: false).setMessagesForGnd(
-            {'title': notification.title, 'body': notification.body});
-        // data.add({'title': notification.title, 'body': notification.body});
+        Provider.of<LocalNotifyprov>(context, listen: false)
+            .setMessagesInForground(
+                {'title': notification.title, 'body': notification.body});
       }
     });
   }
 
   @override
   void initState() {
+    WidgetsBinding.instance.addObserver(this);
     getNotification();
 
     badge = Provider.of<LocalNotifyprov>(context, listen: false).badge();
@@ -124,9 +126,44 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        onResumed();
+        break;
+      case AppLifecycleState.inactive:
+        onPaused();
+        break;
+      case AppLifecycleState.paused:
+        onInactive();
+        break;
+      case AppLifecycleState.detached:
+        onDetached();
+        break;
+    }
+  }
+
+  void onResumed() async {
+    Provider.of<LocalNotifyprov>(context, listen: false).onResumed();
+  }
+
+  void onPaused() {}
+  void onInactive() {
+    print('Inactive');
+  }
+
+  void onDetached() {
+    print('detached');
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // var a =
-    //     Provider.of<LocalNotifyprov>(context, listen: false).allNotifications;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notification'),

@@ -1,47 +1,43 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'dart:convert';
 
-// final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-// Future setMessages(Map messages) async {
-//   // print(messages);
-//   final SharedPreferences prefs = await _prefs;
-//   List<String> messagesString = [];
-//   List<String> allData = (prefs.getStringList('notification') ?? []);
-//   messagesString = [...allData, json.encode(messages)];
-//   prefs.setStringList('notification', messagesString);
-// }
+final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+// set message when app is in forground
+Future setMessagesInBackground(Map messages) async {
+  final SharedPreferences prefs = await _prefs;
+  List<String> messagesString = [];
+  List<String> allData = (prefs.getStringList('notification') ?? []);
+  messagesString = [...allData, json.encode(messages)];
+
+  // prefs.setStringList('notification', messagesString);
+  //===================
+  List<Map<String, dynamic>> messagesMapList = [];
+  for (var element in messagesString) {
+    messagesMapList.add(json.decode(element));
+  }
+
+  if (messagesMapList.length < 50) {
+    prefs.setStringList('notification', messagesString);
+  } else {
+    List<String> msgString = [];
+    for (int i = 10; i < messagesMapList.length; i++) {
+      msgString.add(json.encode(messagesMapList[i]));
+    }
+    prefs.setStringList('notification', msgString);
+    prefs.setInt('totalMessage', messagesMapList.length - 11);
+  }
+  //==================
+}
 
 class LocalNotifyprov extends ChangeNotifier {
-  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   List<Map<String, dynamic>> _allNotifications = [];
   int _newNotifications = 0;
   List<Map<String, dynamic>> get allNotifications => [..._allNotifications];
   int get newNotification => _newNotifications;
 
-  Future setMessagesBack(Map messages) async {
-    // print(messages);
-    final SharedPreferences prefs = await _prefs;
-    List<String> messagesString = [];
-    List<String> allData = (prefs.getStringList('notification') ?? []);
-    messagesString = [...allData, json.encode(messages)];
-    prefs.setStringList('notification', messagesString);
-    _newNotifications++;
-
-    await getMessage().then(
-      (value) {
-        _allNotifications = value;
-        notifyListeners();
-      },
-    );
-    print(_newNotifications);
-    print(_allNotifications.length);
-    notifyListeners();
-  }
-
   // set message when app is in forground
-  Future setMessagesForGnd(Map<String, dynamic> messages) async {
+  Future setMessagesInForground(Map<String, dynamic> messages) async {
     print('============provider ====$messages');
     final SharedPreferences prefs = await _prefs;
     List<String> messagesString = [];
@@ -76,6 +72,7 @@ class LocalNotifyprov extends ChangeNotifier {
   Future<int> badge() async {
     int badgeCount = 0;
     final SharedPreferences prefs = await _prefs;
+
     int oldmessage = prefs.getInt('totalMessage') ?? 0;
     await getMessage().then((data) {
       int len = data.length;
@@ -92,6 +89,30 @@ class LocalNotifyprov extends ChangeNotifier {
     });
 
     return badgeCount;
+  }
+
+  Future<void> onResumed() async {
+    final SharedPreferences prefs = await _prefs;
+    await prefs.reload();
+
+    List<String> messagesString = prefs.getStringList('notification') ?? [];
+    List<Map<String, dynamic>> messages = [];
+    if (messagesString.isNotEmpty) {
+      for (var element in messagesString) {
+        messages.add(json.decode(element));
+      }
+    }
+    _allNotifications = messages;
+    int oldmessage = prefs.getInt('totalMessage') ?? 0;
+    int len = _allNotifications.length;
+    int badgeCount = 0;
+    if (oldmessage < len) {
+      badgeCount = len - oldmessage;
+      setTotalMessage(len);
+    }
+    _newNotifications = badgeCount;
+    print('resume');
+    notifyListeners();
   }
 
   void clearBadge() async {
